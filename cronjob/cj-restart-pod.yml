@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-restarter
+  namespace: default
+spec:
+  schedule: "@daily" # every minute # 0 0 * * * # every day at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: pod-restart-container
+            image: bitnami/kubectl # Use an image with kubectl installed
+            command: ["/bin/sh"]
+            args: ["-c", "kubectl delete pods -l app=watch -n default"]
+          restartPolicy: OnFailure

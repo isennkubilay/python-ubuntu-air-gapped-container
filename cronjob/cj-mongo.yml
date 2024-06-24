@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/name: mongodb
+  name: mongodb-mongodump
+  namespace: default
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: mongodb
+        spec:
+          containers:
+            - command:
+                - /bin/sh
+                - '-c'
+                - >-
+                  mongodump --username=${MONGODB_ROOT_USER}
+                  --password=${MONGODB_ROOT_PASSWORD}
+                  --host=${MONGODB_SERVICE_NAME} --port=${MONGODB_PORT_NUMBER}
+                  ${MONGODB_CLIENT_EXTRA_FLAGS}--oplog --gzip
+                  --archive=${MONGODUMP_DIR}/mongodump-$(date
+                  '+%Y-%m-%d-%H-%M').gz
+              env:
+                - name: MONGODB_ROOT_USER
+                  value: root
+                - name: MONGODB_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: mongodb-root-password
+                      name: mongodb
+                - name: MONGODB_SERVICE_NAME
+                  value: mongodb-0-external
+                - name: MONGODB_PORT_NUMBER
+                  value: '27017'
+                - name: MONGODUMP_DIR
+                  value: /backup/mongodb
+              image: docker.io/bitnami/mongodb:7.0.4-debian-11-r0
+              imagePullPolicy: IfNotPresent
+              name: mongodb-mongodump
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /backup/mongodb
+                  name: datadir
+          dnsPolicy: ClusterFirst
+          enableServiceLinks: true
+          restartPolicy: OnFailure
+          schedulerName: default-scheduler
+          volumes:
+            - configMap:
+                defaultMode: 360
+                name: mongodb-common-scripts
+              name: common-scripts
+            - name: datadir
+              persistentVolumeClaim:
+                claimName: mongodb-mongodump
+  schedule: '@monthly'
+
