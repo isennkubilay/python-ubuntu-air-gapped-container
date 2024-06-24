@@ -1,11 +1,9 @@
 FROM ubuntu:22.04
-
+ARG DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
-
-# Install necessary packages
 RUN apt-get update -y && \
-    apt-get install -y \
-        vim \
+    apt-get install --no-install-recommends \
+    -y vim \
         nano \
         net-tools \
         curl \
@@ -16,7 +14,6 @@ RUN apt-get update -y && \
         strace \
         htop \
         iputils-ping \
-        vim \
         nano \
         traceroute \
         nmap \ 
@@ -29,33 +26,20 @@ RUN apt-get update -y && \
         tshark \
         vnstat \ 
         bmon \
-        network-manager \
-        mtr
+        network-manager \ 
+        postgresql-client \
+        mtr \
+        tzdata 
 
-# Install Java17 
-RUN apt-get install -y openjdk-17-jdk
-RUN apt-get install -y openjdk-17-jre
-RUN update-alternatives --config java
-RUN update-alternatives --config javac
-
-
-
-
-# Download and install MongoDB database tools
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2004-x86_64-100.5.0.tgz && \
     tar -zxvf mongodb-database-tools-ubuntu2004-x86_64-100.5.0.tgz && \
     mv mongodb-database-tools-ubuntu2004-x86_64-100.5.0/bin/* /usr/bin/ && \
-    rm -rf mongodb-database-tools-ubuntu2004-x86_64-100.5.0.tgz mongodb-database-tools-ubuntu2004-x86_64-100.5.0.deb
+    rm -rf mongodb-database-tools-ubuntu2004-x86_64-100.5.0.tgz mongodb-database-tools-ubuntu2004-x86_64-100.5.0
 
 RUN apt install -y iproute2
-
-# Copy application files
 COPY requirements.txt requirements.txt
 COPY code .
-
-# Install Python dependencies
+COPY cronjob . 
 RUN pip3 install -r requirements.txt
-
-# Set the timezone
 ENV TZ=Europe/Istanbul
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
